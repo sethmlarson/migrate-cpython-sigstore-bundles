@@ -19,6 +19,7 @@ expected_issuers_and_identities = {
     "3.12": (google_oidc_issuer, "thomas@python.org"),
     "3.13": (google_oidc_issuer, "thomas@python.org"),
 }
+python_with_version_re = re.compile(r"-(3\.[0-9]{,2})\.[0-9]{,2}")
 
 
 def confirm_before_continue(statement: str):
@@ -33,7 +34,7 @@ def main():
     orig_sigstore_bundles: list[pathlib.Path] = []
     for root, _, filenames in os.walk(artifacts_dir):
         for filename in filenames:
-            if not filename.endswith(".sigstore"):
+            if not filename.endswith(".sigstore") or not python_with_version_re.search(filename):
                 continue
             orig_sigstore_bundles.append(pathlib.Path(root) / filename)
 
@@ -106,7 +107,6 @@ def main():
         working_sigstore_bundle,
         orig_sigstore_bundle,
     ) in working_sigstore_bundles_to_orig_bundles.items():
-
         # Use the original artifact path to verify the new bundle.
         orig_artifact = (
             orig_sigstore_bundle.parent
@@ -115,7 +115,7 @@ def main():
         assert orig_artifact.is_file()
 
         # Pull the Python version from the artifact
-        if not (match := re.search(r"-(3\.[0-9]{,2})\.[0-9]{,2}", orig_artifact.name)):
+        if not (match := python_with_version_re.search(orig_artifact.name)):
             print(
                 f"Couldn't find Python major and minor version for {orig_artifact.name}"
             )
